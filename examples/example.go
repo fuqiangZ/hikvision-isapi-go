@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	hikvision "hikvisionGo"
 	"time"
+
+	hikvision "github.com/fuqiangZ/hikvision-isapi-go"
 )
 
 func main() {
