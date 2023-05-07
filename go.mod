@@ -1,6 +1,6 @@
-module hikvisionGo
+module github.com/fuqiangZ/hikvision-isapi-go
 
-go 1.20
+go 1.18
 
 require (
 	github.com/antchfx/xmlquery v1.3.15 // indirect
