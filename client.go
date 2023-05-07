@@ -96,3 +96,13 @@ func (h *HikvisionClient) StopAlarmGuard() {
 
 	close(h.Message)
 }
+
+// 设备信息
+func (h *HikvisionClient) DeviceInfo() (*xmlquery.Node, error) {
+	return GetDeviceInfo(h.host, h.username, h.password)
+}
+
+// 设备信息
+func (h *HikvisionClient) GetSystemCapability() (*xmlquery.Node, error) {
+	return GetSystemCapability(h.host, h.username, h.password)
+}
