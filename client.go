@@ -1,6 +1,7 @@
 package hikvision
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -62,29 +63,53 @@ func (h *HikvisionClient) StartAlarmGuard() {
 				continue
 			}
 			go h.g.Start()
+
+			var m *Message
 			for {
 				select {
 				case b := <-h.g.Output:
 					fmt.Println(b.ContentType)
 					if b.ContentType == TYPE_XML {
-						//解析xml内容，再读取n个图片
+						doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
+						if err != nil {
+							fmt.Println(err)
+							continue
+						}
+						root, err := xmlquery.Query(doc, "EventNotificationAlert")
+						if err != nil {
+							fmt.Println(err)
+							continue
+						}
+						n := root.SelectElement("eventType")
+						if n == nil {
+							fmt.Println("not find eventType field")
+							continue
+						}
+						m = &Message{EventType: n.InnerText(), KeyContent: *doc}
+
+					} else if b.ContentType == TYPE_IMAGE {
+						if m == nil && m.EventType != "ANPR" {
+							continue
+						}
+						// fmt.Println("eventType", n.InnerText())
+						// if n.InnerText() == "ANPR" {
+						// 	n = e.SelectElement("picNum")
+						// 	fmt.Println(n.InnerText())
+						// }
+
 					}
-				// m := Message{
-				// 	EventType: "hearbeat",
-				// 	Key
-				// }
-				// h.Message <- b
 				case <-h.ctx.Done():
 					fmt.Println("for data canceled")
 					return
 				}
+
+				//将数据output出去
 
 			}
 
 		}
 
 	}()
-
 }
 
 // 撤销布防
