@@ -25,7 +25,7 @@ const (
 	TYPE_IMAGE = "image"
 )
 
-func NewMultipart(ctx context.Context, rc io.ReadCloser, boundary string) *MultipartReader {
+func NewMultipart(ctx context.Context, rc io.Reader, boundary string) *MultipartReader {
 
 	return &MultipartReader{ctx: ctx, bufReader: bufio.NewReaderSize(rc, 4096), boundary: boundary}
 }
@@ -93,9 +93,9 @@ func (m *MultipartReader) readPart() (error, *Content) {
 					p += n
 				}
 				if p >= b.ContentLen {
-					// b.Body = bytes.TrimLeftFunc(b.Body, func(r rune) bool {
-					// 	return r == '\r' || r == '\n' || r == ' '
-					// })
+					b.Body = bytes.TrimLeftFunc(b.Body, func(r rune) bool {
+						return r == '\r' || r == '\n' || r == ' '
+					})
 					return nil, b
 				}
 			}
