@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/antchfx/xmlquery"
@@ -22,13 +23,19 @@ type HikvisionClient struct {
 type Message struct {
 	EventType  string
 	KeyContent xmlquery.Node //主数据
-	Attachment []Content     //依据主数据读取出来的附加内容
+	AttachNum  int
+	Attachment []Content //依据主数据读取出来的附加内容
 }
 type Content struct {
 	ContentType string
 	ContentLen  int
 	Body        []byte
 }
+
+const (
+	EVENT_TYPE_HEARTBEAT = "heartBeat"
+	EVENT_TYPE_ANPR      = "ANPR"
+)
 
 func NewClient(host, username, password string) *HikvisionClient {
 	h := &HikvisionClient{host: host, username: username, password: password}
@@ -70,6 +77,7 @@ func (h *HikvisionClient) StartAlarmGuard() {
 				case b := <-h.g.Output:
 					fmt.Println(b.ContentType)
 					if b.ContentType == TYPE_XML {
+						var err error
 						doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
 						if err != nil {
 							fmt.Println(err)
@@ -85,28 +93,36 @@ func (h *HikvisionClient) StartAlarmGuard() {
 							fmt.Println("not find eventType field")
 							continue
 						}
-						m = &Message{EventType: n.InnerText(), KeyContent: *doc}
-
-					} else if b.ContentType == TYPE_IMAGE {
-						if m == nil && m.EventType != "ANPR" {
+						eventType := n.InnerText()
+						n = root.SelectElement("picNum")
+						if n == nil {
+							fmt.Println("not find eventType field")
 							continue
 						}
-						// fmt.Println("eventType", n.InnerText())
-						// if n.InnerText() == "ANPR" {
-						// 	n = e.SelectElement("picNum")
-						// 	fmt.Println(n.InnerText())
-						// }
-
+						picNum := 0
+						if m.EventType == EVENT_TYPE_ANPR {
+							picNum, err = strconv.Atoi(n.InnerText())
+							if err != nil {
+								fmt.Println(err)
+								continue
+							}
+						}
+						m = &Message{EventType: eventType, KeyContent: *doc, AttachNum: picNum}
+					} else if b.ContentType == TYPE_IMAGE {
+						if m == nil || m.EventType != EVENT_TYPE_ANPR {
+							continue
+						}
+						m.Attachment = append(m.Attachment, Content{ContentType: b.ContentType, ContentLen: len(b.Body), Body: b.Body})
+					}
+					if m.EventType == EVENT_TYPE_HEARTBEAT || (m.EventType == EVENT_TYPE_ANPR && len(m.Attachment) == m.AttachNum) {
+						//将数据output出去
+						h.Message <- *m
 					}
 				case <-h.ctx.Done():
 					fmt.Println("for data canceled")
 					return
 				}
-
-				//将数据output出去
-
 			}
-
 		}
 
 	}()
