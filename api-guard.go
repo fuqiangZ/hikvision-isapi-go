@@ -83,7 +83,7 @@ func (g *Guard) Start() error {
 			if err != nil {
 				log.Fatal("2 :", err)
 			}
-			fmt.Printf("%v \r\n", *c)
+			// fmt.Printf("%v \r\n", *c)
 
 			g.Output <- *c
 		}

@@ -78,7 +78,7 @@ func (m *MultipartReader) readPart() (error, *Content) {
 			}
 		}
 		if bytes.HasPrefix(line, []byte(ContentL)) {
-			fmt.Println(strings.Split(string(line), ":"))
+			// fmt.Println(strings.Split(string(line), ":"))
 			lenStr := strings.Split(string(bytes.TrimSuffix(line, []byte(End))), ":")[1]
 			if b.ContentLen, err = strconv.Atoi(strings.TrimSpace(lenStr)); err != nil {
 				fmt.Println(err)

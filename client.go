@@ -22,7 +22,7 @@ type HikvisionClient struct {
 
 type Message struct {
 	EventType  string
-	KeyContent xmlquery.Node //主数据
+	KeyContent []byte
 	AttachNum  int
 	Attachment []Content //依据主数据读取出来的附加内容
 }
@@ -94,20 +94,21 @@ func (h *HikvisionClient) StartAlarmGuard() {
 							continue
 						}
 						eventType := n.InnerText()
-						n = root.SelectElement("picNum")
-						if n == nil {
-							fmt.Println("not find eventType field")
-							continue
-						}
+
 						picNum := 0
-						if m.EventType == EVENT_TYPE_ANPR {
+						if eventType == EVENT_TYPE_ANPR {
+							n = root.SelectElement("picNum")
+							if n == nil {
+								fmt.Println("not find picNum field")
+								continue
+							}
 							picNum, err = strconv.Atoi(n.InnerText())
 							if err != nil {
 								fmt.Println(err)
 								continue
 							}
 						}
-						m = &Message{EventType: eventType, KeyContent: *doc, AttachNum: picNum}
+						m = &Message{EventType: eventType, KeyContent: b.Body, AttachNum: picNum}
 					} else if b.ContentType == TYPE_IMAGE {
 						if m == nil || m.EventType != EVENT_TYPE_ANPR {
 							continue
