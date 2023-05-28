@@ -14,6 +14,76 @@ import (
 	hikvision "github.com/fuqiangZ/hikvision-isapi-go"
 )
 
+func TestLedDisplay(t *testing.T) {
+
+	xmlData := `{
+		"SingleSceneLEDConfigurations": {	
+			"sid":  1,	
+			"mode":  "passingVehicle",	
+			"passingIconType":  "noPassing",	
+			"showFreeEnabled":  true,	
+			"displayTime":  15,	
+			"vehicleDisplayEnabled":  true,	
+			"allowListDisplayEnabled":  false,	
+			"blockListDisplayEnabled":  false,	
+			"temporaryListDisplayEnabled":  false,	
+			"LEDConfigurationList": [	
+				{
+					"LEDConfiguration": {	
+						"id":  1,	
+						"brightness":  10,	
+						"enabled":  true,	
+						"ShowInfoList": [	
+							{
+								"ShowInfo": {	
+									"id":  1,	
+									"fontSize":  16,	
+									"fontColor":  "red",	
+									"speedType":  "medium",	
+									"displayMode":  "left",	
+									"LineInfoList": [	
+										{
+											"LineInfo": {	
+												"id":  1,	
+												"value":  "这一行是什么",	
+												"customValue":  "aaa应该可以了吧"	
+											}
+										}
+									]
+								}
+							}
+						]
+					}
+				}
+			],
+		   "LedInfo": {
+		"communicateMode": "network"},
+			"speedMode":  "slowMode"	
+		}
+	}
+	`
+	client := hikvision.NewClient("http://192.168.100.248", "admin", "Abc12345")
+
+	n, err := client.LedShowInfo(xmlData)
+	fmt.Println(err)
+	// xmlquery.Query()
+	fmt.Println(n.Data)
+
+}
+func TestGateawayControl(t *testing.T) {
+	client := hikvision.NewClient("http://192.168.100.248", "admin", "Abc12345")
+	xmldata := `
+<?xml version="1.0" encoding="UTF-8"?>
+<BarrierGate xmlns="http://www.isapi.org/ver20/XMLSchema" version="2.0">
+  <ctrlMode opt="open,close,lock,unlock">open</ctrlMode>
+</BarrierGate>`
+	n, err := client.GateawayControl(xmldata)
+	fmt.Println(err)
+	// xmlquery.Query()
+	fmt.Println(n.Data)
+
+}
+
 func TestDataParse(t *testing.T) {
 	fmt.Println("dd")
 	mr := hikvision.NewMultipart(context.Background(), bytes.NewReader(MockFromFile()), "-----------------------7e13971310878")

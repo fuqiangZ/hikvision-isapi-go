@@ -59,6 +59,17 @@ func (h *HikvisionClient) GetCapablities() {
 	// h.cancel()
 }
 
+// 布防能力检查
+func (h *HikvisionClient) GateawayControl(xmldata string) (*xmlquery.Node, error) {
+	// h.cancel()
+	return GateawayControl(h.host, h.username, h.password, xmldata)
+}
+
+func (h *HikvisionClient) LedShowInfo(xmldata string) (*xmlquery.Node, error) {
+	// h.cancel()
+	return LedShowInfo(h.host, h.username, h.password, xmldata)
+}
+
 // 布防
 func (h *HikvisionClient) StartAlarmGuard() {
 	go func() {
