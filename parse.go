@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -17,12 +18,13 @@ type MultipartReader struct {
 }
 
 const (
-	ContentT   = "Content-Type:"
-	ContentL   = "Content-Length:"
-	End        = "\r\n\r\n"
-	TYPE_XML   = "xml"
-	TYPE_JSON  = "json"
-	TYPE_IMAGE = "image"
+	ContentT           = "Content-Type:"
+	ContentL           = "Content-Length:"
+	ContentDisposition = "Content-Disposition:"
+	End                = "\r\n\r\n"
+	TYPE_XML           = "xml"
+	TYPE_JSON          = "json"
+	TYPE_IMAGE         = "image"
 )
 
 func NewMultipart(ctx context.Context, rc io.Reader, boundary string) *MultipartReader {
@@ -51,6 +53,7 @@ func (m *MultipartReader) NextPart() (error, *Content) {
 
 func (m *MultipartReader) readPart() (error, *Content) {
 	b := &Content{}
+	b.Header = make(HeaderType)
 	for {
 		line, err := m.bufReader.ReadSlice('\n')
 		// fmt.Println(string(line))
@@ -62,37 +65,55 @@ func (m *MultipartReader) readPart() (error, *Content) {
 			continue
 		}
 
+		if bytes.HasPrefix(line, []byte(ContentDisposition)) {
+			// Content-Disposition: form-data;name="licensePlatePicture.jpg";filename="licensePlatePicture.jpg"
+			s := strings.Split(string(bytes.TrimSuffix(line, []byte(End))), ":")[1]
+			pattern := regexp.MustCompile(`name="(?P<name>.*?)";filename="(?P<filename>.*?)"`)
+			matches := pattern.FindStringSubmatch(s)
+			if len(matches) == 3 {
+				b.Header["name"] = matches[1]
+				b.Header["filename"] = matches[2]
+			}
+		}
 		if bytes.HasPrefix(line, []byte(ContentT)) {
 			if bytes.Contains(line, []byte(TYPE_XML)) {
-				b.ContentType = TYPE_XML
+				// b.ContentType = TYPE_XML
+				b.Header[ContentT[:len(ContentT)-1]] = TYPE_XML
 			} else if bytes.Contains(line, []byte(TYPE_JSON)) {
-				b.ContentType = TYPE_XML
+				// b.ContentType = TYPE_XML
+				b.Header[ContentT[:len(ContentT)-1]] = TYPE_JSON
 			} else if bytes.Contains(line, []byte(TYPE_IMAGE)) {
-				b.ContentType = TYPE_IMAGE
+				// b.ContentType = TYPE_IMAGE
+				b.Header[ContentT[:len(ContentT)-1]] = TYPE_IMAGE
+
 			} else {
 				t := strings.Split(string(line), ":")[1]
 				if len(t) > 0 {
 					t = strings.Split(t, ";")[0]
 				}
-				b.ContentType = t
+				// b.ContentType = t
+				b.Header[ContentT[:len(ContentT)-1]] = t
+
 			}
 		}
 		if bytes.HasPrefix(line, []byte(ContentL)) {
 			// fmt.Println(strings.Split(string(line), ":"))
 			lenStr := strings.Split(string(bytes.TrimSuffix(line, []byte(End))), ":")[1]
-			if b.ContentLen, err = strconv.Atoi(strings.TrimSpace(lenStr)); err != nil {
+			length, err := strconv.Atoi(strings.TrimSpace(lenStr))
+			if err != nil {
 				fmt.Println(err)
 				return err, nil
 			}
+			b.Header[ContentL[:len(ContentL)-1]] = length
 			//从length之后读取len个字节
-			b.Body = make([]byte, b.ContentLen)
+			b.Body = make([]byte, length)
 			var p int = 0
 			for {
 				//read full
 				if n, err := m.bufReader.Read(b.Body[p:]); err == nil {
 					p += n
 				}
-				if p >= b.ContentLen {
+				if p >= length {
 					b.Body = bytes.TrimLeftFunc(b.Body, func(r rune) bool {
 						return r == '\r' || r == '\n' || r == ' '
 					})

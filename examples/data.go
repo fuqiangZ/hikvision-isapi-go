@@ -8,7 +8,7 @@ import (
 
 func MockFromFile() []byte {
 
-	bs, err := ioutil.ReadFile("console.log")
+	bs, err := ioutil.ReadFile("./console.log")
 	if err != nil {
 		fmt.Println("read file error:", err)
 		return nil

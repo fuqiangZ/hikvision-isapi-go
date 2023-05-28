@@ -38,6 +38,9 @@ func NewGuard(ctx context.Context, host, username, password string) (*Guard, err
 		return nil, fmt.Errorf("resp is nil")
 	}
 	// defer resp.Body.Close()
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("alertStream failed, statusCode: %v", resp.StatusCode)
+	}
 
 	g := &Guard{resp: resp, ctx: ctx}
 	g.Output = make(chan Content, 1)
@@ -83,7 +86,7 @@ func (g *Guard) Start() error {
 			if err != nil {
 				log.Fatal("2 :", err)
 			}
-			// fmt.Printf("%v \r\n", *c)
+			fmt.Printf("%s \r\n", c.Body)
 
 			g.Output <- *c
 		}

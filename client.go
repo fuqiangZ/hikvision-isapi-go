@@ -27,9 +27,19 @@ type Message struct {
 	Attachment []Content //依据主数据读取出来的附加内容
 }
 type Content struct {
-	ContentType string
-	ContentLen  int
-	Body        []byte
+	Header HeaderType
+	// ContentType string
+	// ContentLen int
+	Body []byte
+}
+
+type HeaderType map[string]interface{}
+
+func (h HeaderType) Get(key string) interface{} {
+	if v, ok := h[key]; ok {
+		return v
+	}
+	return nil
 }
 
 const (
@@ -75,8 +85,9 @@ func (h *HikvisionClient) StartAlarmGuard() {
 			for {
 				select {
 				case b := <-h.g.Output:
-					fmt.Println(b.ContentType)
-					if b.ContentType == TYPE_XML {
+					fmt.Println(b.Header)
+					contentType := b.Header.Get("Content-Type")
+					if contentType == TYPE_XML {
 						var err error
 						doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
 						if err != nil {
@@ -109,11 +120,15 @@ func (h *HikvisionClient) StartAlarmGuard() {
 							}
 						}
 						m = &Message{EventType: eventType, KeyContent: b.Body, AttachNum: picNum}
-					} else if b.ContentType == TYPE_IMAGE {
+					} else if contentType == TYPE_IMAGE {
 						if m == nil || m.EventType != EVENT_TYPE_ANPR {
 							continue
 						}
-						m.Attachment = append(m.Attachment, Content{ContentType: b.ContentType, ContentLen: len(b.Body), Body: b.Body})
+						h := make(HeaderType, 1)
+						h[ContentT] = contentType
+						h[ContentL] = len(b.Body)
+						nc := Content{Header: h, Body: b.Body}
+						m.Attachment = append(m.Attachment, nc)
 					}
 					if m.EventType == EVENT_TYPE_HEARTBEAT || (m.EventType == EVENT_TYPE_ANPR && len(m.Attachment) == m.AttachNum) {
 						//将数据output出去

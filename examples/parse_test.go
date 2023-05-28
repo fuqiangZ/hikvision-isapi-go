@@ -31,7 +31,9 @@ func TestDataParse(t *testing.T) {
 		// fmt.Printf("%v \r\n", *c)
 		// fmt.Printf("%q \n", c.Body)
 
-		if b.ContentType == "xml" {
+		fmt.Println(b.Header)
+		contentType := b.Header.Get("Content-Type")
+		if contentType == "xml" {
 			doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
 			fmt.Println(err)
 
@@ -48,7 +50,7 @@ func TestDataParse(t *testing.T) {
 
 		}
 
-		if b.ContentType == "xml" {
+		if contentType == "xml" {
 			var err error
 			doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
 			if err != nil {
@@ -81,11 +83,16 @@ func TestDataParse(t *testing.T) {
 				}
 			}
 			m = &hikvision.Message{EventType: eventType, KeyContent: b.Body, AttachNum: picNum}
-		} else if b.ContentType == hikvision.TYPE_IMAGE {
+		} else if contentType == hikvision.TYPE_IMAGE {
 			if m == nil || m.EventType != hikvision.EVENT_TYPE_ANPR {
 				continue
 			}
-			m.Attachment = append(m.Attachment, hikvision.Content{ContentType: b.ContentType, ContentLen: len(b.Body), Body: b.Body})
+			h := make(hikvision.HeaderType, 1)
+			h[hikvision.ContentT[:len(hikvision.ContentT)-1]] = contentType
+			h[hikvision.ContentL[:len(hikvision.ContentL)-1]] = len(b.Body)
+			nc := hikvision.Content{Header: h, Body: b.Body}
+			m.Attachment = append(m.Attachment, nc)
+			// m.Attachment = append(m.Attachment, hikvision.Content{ContentType: b.ContentType, ContentLen: len(b.Body), Body: b.Body})
 		}
 		if m.EventType == "heatBeat" || (m.EventType == "ANPR" && len(m.Attachment) == m.AttachNum) {
 			//将数据output出去
