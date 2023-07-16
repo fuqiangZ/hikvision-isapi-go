@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	client := hikvision.NewClient("http://localhost:8800", "admin", "Abc12345")
+	client := hikvision.NewClient("http://192.168.100.248:80", "admin", "Abc12345")
 
 	fmt.Println("alarm guard start")
 	client.StartAlarmGuard()
@@ -29,7 +29,7 @@ func main() {
 	// time.Sleep(2 * time.Second)
 	// guard2()
 
-	select {}
+	// select {}
 }
 
 func guard2() {

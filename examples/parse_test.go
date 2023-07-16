@@ -104,6 +104,7 @@ func TestDataParse(t *testing.T) {
 		fmt.Println(b.Header)
 		contentType := b.Header.Get("Content-Type")
 		if contentType == "xml" {
+			fmt.Println(string(b.Body))
 			doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
 			fmt.Println(err)
 
@@ -127,6 +128,7 @@ func TestDataParse(t *testing.T) {
 				fmt.Println(err)
 				continue
 			}
+
 			root, err := xmlquery.Query(doc, "EventNotificationAlert")
 			if err != nil {
 				fmt.Println(err)
@@ -141,6 +143,18 @@ func TestDataParse(t *testing.T) {
 
 			picNum := 0
 			if eventType == "ANPR" {
+				anprFilter, err := xmlquery.Query(doc, "/EventNotificationAlert/ANPR/licensePlate")
+				if err != nil {
+					fmt.Println(err)
+					continue
+				}
+				fmt.Println(anprFilter.InnerText())
+				//  anprFilter:= root.SelectElement("/ANPR/licensePlate")
+				// if n == nil {
+				// 	fmt.Println("no filter licensePlate")
+				// 	continue
+				// }
+				fmt.Println(anprFilter.InnerText())
 				n = root.SelectElement("picNum")
 				if n == nil {
 					fmt.Println("not find picNum field")

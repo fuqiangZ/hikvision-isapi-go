@@ -1,10 +1,8 @@
 package hikvision
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/antchfx/xmlquery"
@@ -83,73 +81,72 @@ func (h *HikvisionClient) StartAlarmGuard() {
 
 			}
 			fmt.Println("start guard")
-			var err error
-			h.g, err = NewGuard(h.ctx, h.host, h.username, h.password)
+			g, err := NewGuard(h.ctx, h.host, h.username, h.password)
 			if err != nil {
 				fmt.Println(err)
 				time.Sleep(1 * time.Second)
 				continue
 			}
-			go h.g.Start()
+			g.Start(h.Message)
 
-			var m *Message
-			for {
-				select {
-				case b := <-h.g.Output:
-					fmt.Println(b.Header)
-					contentType := b.Header.Get("Content-Type")
-					if contentType == TYPE_XML {
-						var err error
-						doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
-						if err != nil {
-							fmt.Println(err)
-							continue
-						}
-						root, err := xmlquery.Query(doc, "EventNotificationAlert")
-						if err != nil {
-							fmt.Println(err)
-							continue
-						}
-						n := root.SelectElement("eventType")
-						if n == nil {
-							fmt.Println("not find eventType field")
-							continue
-						}
-						eventType := n.InnerText()
+			// var m *Message
+			// for {
+			// 	select {
+			// 	case b := <-h.g.Output:
+			// 		fmt.Println(b.Header)
+			// 		contentType := b.Header.Get("Content-Type")
+			// 		if contentType == TYPE_XML {
+			// 			var err error
+			// 			doc, err := xmlquery.Parse(bytes.NewReader(b.Body))
+			// 			if err != nil {
+			// 				fmt.Println(err)
+			// 				continue
+			// 			}
+			// 			root, err := xmlquery.Query(doc, "EventNotificationAlert")
+			// 			if err != nil {
+			// 				fmt.Println(err)
+			// 				continue
+			// 			}
+			// 			n := root.SelectElement("eventType")
+			// 			if n == nil {
+			// 				fmt.Println("not find eventType field")
+			// 				continue
+			// 			}
+			// 			eventType := n.InnerText()
 
-						picNum := 0
-						if eventType == EVENT_TYPE_ANPR {
-							n = root.SelectElement("picNum")
-							if n == nil {
-								fmt.Println("not find picNum field")
-								continue
-							}
-							picNum, err = strconv.Atoi(n.InnerText())
-							if err != nil {
-								fmt.Println(err)
-								continue
-							}
-						}
-						m = &Message{EventType: eventType, KeyContent: b.Body, AttachNum: picNum}
-					} else if contentType == TYPE_IMAGE {
-						if m == nil || m.EventType != EVENT_TYPE_ANPR {
-							continue
-						}
-						h := make(HeaderType, 1)
-						h[ContentT] = contentType
-						h[ContentL] = len(b.Body)
-						nc := Content{Header: h, Body: b.Body}
-						m.Attachment = append(m.Attachment, nc)
-					}
-					if m.EventType == EVENT_TYPE_HEARTBEAT || (m.EventType == EVENT_TYPE_ANPR && len(m.Attachment) == m.AttachNum) {
-						//将数据output出去
-						h.Message <- *m
-					}
-				case <-h.ctx.Done():
-					fmt.Println("for data canceled")
-					return
-				}
-			}
+			// 			picNum := 0
+			// 			if eventType == EVENT_TYPE_ANPR {
+			// 				n = root.SelectElement("picNum")
+			// 				if n == nil {
+			// 					fmt.Println("not find picNum field")
+			// 					continue
+			// 				}
+			// 				picNum, err = strconv.Atoi(n.InnerText())
+			// 				if err != nil {
+			// 					fmt.Println(err)
+			// 					continue
+			// 				}
+			// 			}
+			// 			m = &Message{EventType: eventType, KeyContent: b.Body, AttachNum: picNum}
+			// 		} else if contentType == TYPE_IMAGE {
+			// 			if m == nil || m.EventType != EVENT_TYPE_ANPR {
+			// 				continue
+			// 			}
+			// 			h := make(HeaderType, 1)
+			// 			h[ContentT] = contentType
+			// 			h[ContentL] = len(b.Body)
+			// 			nc := Content{Header: h, Body: b.Body}
+			// 			m.Attachment = append(m.Attachment, nc)
+			// 		}
+			// 		if m.EventType == EVENT_TYPE_HEARTBEAT || (m.EventType == EVENT_TYPE_ANPR && len(m.Attachment) == m.AttachNum) {
+			// 			//将数据output出去
+			// 			h.Message <- *m
+			// 		}
+			// 	case <-h.ctx.Done():
+			// 		fmt.Println("for data canceled")
+			// 		return
+			// 	}
+			// }
 		}
 
 	}()
